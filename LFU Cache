@@ -1,0 +1,74 @@
+import java.util.*;
+
+class LFUCache {
+
+    class Node {                                
+        int key, value, freq;
+
+        Node(int key, int value) {
+            this.key = key;
+            this.value = value;
+            this.freq = 1;
+        }
+    }
+
+    int capacity, minFreq;
+    Map<Integer, Node> cache;
+    Map<Integer, LinkedHashSet<Integer>> freqMap;
+
+    public LFUCache(int capacity) {
+        this.capacity = capacity;
+        this.minFreq = 0;
+        cache = new HashMap<>();
+        freqMap = new HashMap<>();
+    }
+
+    public int get(int key) {
+        if (!cache.containsKey(key))
+            return -1;
+
+        Node node = cache.get(key);
+        updateFreq(node);
+        return node.value;
+    }
+
+    public void put(int key, int value) {
+        if (capacity == 0)
+            return;
+
+        if (cache.containsKey(key)) {
+            Node node = cache.get(key);
+            node.value = value;
+            updateFreq(node);
+            return;
+        }
+
+        if (cache.size() == capacity) {
+            LinkedHashSet<Integer> set = freqMap.get(minFreq);
+            int evict = set.iterator().next();
+            set.remove(evict);
+            cache.remove(evict);
+        }
+
+        Node node = new Node(key, value);
+        cache.put(key, node);
+
+        freqMap.computeIfAbsent(1, k -> new LinkedHashSet<>()).add(key);
+        minFreq = 1;
+    }
+
+    private void updateFreq(Node node) {
+        int freq = node.freq;
+
+        freqMap.get(freq).remove(node.key);
+
+        if (freq == minFreq && freqMap.get(freq).isEmpty()) {
+            minFreq++;
+        }
+
+        node.freq++;
+
+        freqMap.computeIfAbsent(node.freq,
+                k -> new LinkedHashSet<>()).add(node.key);
+    }
+}
